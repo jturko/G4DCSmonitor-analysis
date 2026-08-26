@@ -129,7 +129,7 @@ struct Config { std::string dir; std::string title; };
 inline const std::vector<Config>& Configs() {
     static const std::vector<Config> c = {
         { "nominal",                "nominal" },
-        { "nominal-all-positions",  "nominal (all positions)" },
+        //{ "nominal-all-positions",  "nominal (all positions)" },
     };
     return c;
 }

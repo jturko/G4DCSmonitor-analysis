@@ -16,7 +16,6 @@
 #include "style.h"
 
 #include <TCanvas.h>
-#include <TEllipse.h>
 #include <TF1.h>
 #include <TFile.h>
 #include <TGaxis.h>
@@ -28,7 +27,6 @@
 #include <TLatex.h>
 #include <TLegend.h>
 #include <TLine.h>
-#include <TMarker.h>
 #include <cmath>
 #include <cstdio>
 #include <vector>
@@ -139,13 +137,6 @@ void design_metrics(std::string part = "gamma",
                 double e; double v = PolyIntegral(hp, &e);
                 if (ic == 0) { s += v; sE2 += e*e; }
                 else         { b += v; bE2 += e*e; }
-            }
-            // global emission money plot (sum over casks)
-            if (auto* he = (TH2F*)f->Get("h2_emit_global")) {
-                if (!emit[j]) {
-                    emit[j] = (TH2F*)he->Clone(Form("emit_%d", j));
-                    emit[j]->SetDirectory(nullptr);
-                } else emit[j]->Add(he);
             }
             // directionality (all casks contribute)
             if (auto* hc = (TH1*)f->Get("h1_cos_alpha")) {
@@ -286,30 +277,6 @@ void design_metrics(std::string part = "gamma",
     legFW->AddEntry(gPhi,     "FWHM_{#phi} (left)",  "lp");
     legFW->AddEntry(gZscaled, "FWHM_{z} (right)",    "lp");
     legFW->Draw();
-
-    // ---- (5) global emission "money plot" for a chosen design --------------
-    auto drawEmit = [&](int j) {
-        if (!emit[j]) return;
-        auto* c = new TCanvas(Form("c_emit_%d", j),
-                              Form("emission origins: %s", T(j)), 850, 750);
-        c->SetRightMargin(0.14);
-        emit[j]->SetTitle(Form("detected emission origins (%s, %s);x [mm];y [mm]",
-                               T(j), part.c_str()));
-        emit[j]->Draw("COLZ");
-        for (int ic = 0; ic < ncask; ++ic) {
-            auto* e = new TEllipse(kCaskPos[ic].x, kCaskPos[ic].y, kCaskR, kCaskR);
-            e->SetFillStyle(0); e->SetLineColor(ic == 0 ? kRed + 1 : kGray + 2);
-            e->SetLineWidth(2); e->Draw();
-            auto* lab = new TLatex(kCaskPos[ic].x, kCaskPos[ic].y,
-                                   Form("#bf{%d}", ic));
-            lab->SetTextAlign(22); lab->Draw();
-        }
-        auto* dm = new TMarker(kDetX, kDetY, 29);   // detector
-        dm->SetMarkerColor(kBlack); dm->SetMarkerSize(2.4); dm->Draw();
-    };
-    //drawEmit(0);          // nominal
-    //drawEmit(nconfig - 1); // most-shielded, for contrast
-    //for (int j = 0; j < nconfig; ++j) drawEmit(j);
 
     // ---- (6) absolute signal vs background, grouped bars (log-y) -----------
     //  Exposes the mechanism the ratio chart (c_improvement) hides: does a
