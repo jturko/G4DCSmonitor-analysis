@@ -33,6 +33,7 @@
 #include <iostream>
 #include <vector>
 #include <utility>   // std::pair
+#include <TParameter.h>
 
 #include <filesystem>
 #include <regex>
@@ -509,6 +510,9 @@ void analyze_cask(const char* inputDir = "data/nominal/cask0",
                  det == kCLYC ? "CLYC" : "plastic",
                  ParticleName(P.cfg.part), (int)P.cfg.level, P.eLo, P.eHi));
         cfgStamp.Write();
+        
+        TParameter<Long64_t> pIn ("n_input_files",   nFound);      pIn.Write();
+        TParameter<Long64_t> pMis("n_missing_files", P.nMissing);  pMis.Write();
 
         P.fout->Write();
         P.fout->Close();

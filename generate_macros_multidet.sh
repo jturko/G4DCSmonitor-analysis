@@ -34,6 +34,24 @@ SOURCES=(
 BASE_FUELS=(0 1 2 3 5 6 7 8 13 14 15 22 23 32)   # hexant 0
 ROTS=(0 60 120 180 240 300)                       # hexants
 CASKS=(0 1 2 3 4 5 6 7 8 9 10 11)                 # 12 casks: central(0-3), +x(4-7), -x(8-11)
+# --- 192-detector phi/z scan block, generated once (identical for all macros) ---
+# Circle of radius R about cask-0 centre (CX,CY); z-planes and phi steps match
+# all_positions.txt exactly (phi=0,z=150 reproduces the old nominal placement).
+DET_BLOCK="$(
+  R=1350; CX=1580; CY=1580
+  for Z in -1050 -750 -450 -150 150 450 750 1050; do
+    printf '# ===== z = %s mm =====\n' "$Z"
+    for I in $(seq 0 23); do
+      PHI=$((15*I))
+      read X Y <<<"$(awk -v p="$PHI" -v cx="$CX" -v cy="$CY" -v r="$R" \
+        'BEGIN{a=p*atan2(0,-1)/180; printf "%.2f %.2f", cx+r*cos(a), cy+r*sin(a)}')"
+      printf '/dcs-monitor/det/setPosition %s %s %s mm\n' "$X" "$Y" "$Z"
+      printf '/dcs-monitor/det/setRotation 0 -90 %s\n'    "$PHI"
+      printf '/dcs-monitor/det/clyc/add\n'
+    done
+  done
+)"
+
 
 # --- Multiple hot assemblies: key "cask:globalFuel" -> activity multiplier ---
 declare -A HOT
@@ -111,10 +129,13 @@ for BASE in "${BASE_FUELS[@]}"; do
 /dcs-monitor/det/setBiasingShells   1
 
 
-## --- Nominal 
-/dcs-monitor/det/setPosition 2930.00 1580.00 150 mm
-/dcs-monitor/det/setRotation 0 -90 0
-/dcs-monitor/det/clyc/add
+## ## --- Nominal 
+## /dcs-monitor/det/setPosition 2930.00 1580.00 150 mm
+## /dcs-monitor/det/setRotation 0 -90 0
+## /dcs-monitor/det/clyc/add
+
+# Loop to place all detectors
+${DET_BLOCK}
 
 # =====================================================================
 #  THREE CASTOR 440/84 clusters, side-facing 2x2 squares, SYMMETRIC
@@ -197,7 +218,7 @@ EOF
 /dcs-monitor/surf/caskNum           ${CASK}
 /dcs-monitor/surf/sourceRotZ        ${ROT} deg
 /dcs-monitor/surf/decayRate         ${RATE_THIS}
-/analysis/setFileName               data/roomReturn/hall_3cluster/nominal/cask${CASK}/detector-response_globalFuel${GFUEL_PAD}_${SUBDIR}
+/analysis/setFileName               data/nominal-all-positions/cask${CASK}/detector-response_globalFuel${GFUEL_PAD}_${SUBDIR}
 /dcs-monitor/surf/startRun          ${MEAS_TIME} s
 EOF
       done

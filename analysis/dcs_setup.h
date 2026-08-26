@@ -7,12 +7,15 @@
 
 namespace dcs {
 
-// ---------------------------------------------------------------------------
-//  Detector (global frame): faces the central-cluster target cask 0 along -x.
-//  From generate_macros.sh: /dcs-monitor/det/setPosition 3025 1580 0 mm,
-//                           /dcs-monitor/det/setRotation  0 0 -90.
-// ---------------------------------------------------------------------------
-constexpr double kDetX = 3025.0, kDetY = 1580.0, kDetZ = 0.0;
+// // ---------------------------------------------------------------------------
+// //  Detector (global frame): faces the central-cluster target cask 0 along -x.
+// //  From generate_macros.sh: /dcs-monitor/det/setPosition 3025 1580 0 mm,
+// //                           /dcs-monitor/det/setRotation  0 0 -90.
+// // ---------------------------------------------------------------------------
+// constexpr double kDetX = 3025.0, kDetY = 1580.0, kDetZ = 0.0;
+
+// This value will need to change depending on the rotation angle / etc     
+constexpr double kDetX = 2989.5, kDetY = 1580.0, kDetZ = 150.0;
 
 struct Point { double x, y; };
 
@@ -125,7 +128,8 @@ struct Config { std::string dir; std::string title; };
 // Add further 12-cask trees here to overlay/compare them.
 inline const std::vector<Config>& Configs() {
     static const std::vector<Config> c = {
-        { "roomReturn/hall_3cluster/nominal", "nominal" },
+        { "nominal",                "nominal" },
+        { "nominal-all-positions",  "nominal (all positions)" },
     };
     return c;
 }

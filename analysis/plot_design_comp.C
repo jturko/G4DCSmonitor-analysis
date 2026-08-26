@@ -21,6 +21,34 @@ using namespace dcs;
 // New hall layout is axis-aligned -> no per-map rotation (old diamond used -45).
 namespace { constexpr double kRotDeg = 0.0; }
 
+// Count currently-present (globalFuel, source) inputs under caskDir and the
+// newest input mtime. Reuses analyze_cask's own discovery so the count matches.
+static long CountInputs(const std::string& caskDir, fs::file_time_type& newest)
+{
+    std::vector<std::vector<std::string>> fp;
+    DiscoverFiles(caskDir.c_str(), Sources(), fp);      // fills [kNAssem][nsrc]
+    long n = 0; newest = fs::file_time_type::min();
+    for (auto& row : fp) for (auto& s : row) if (!s.empty()) {
+        ++n;
+        std::error_code ec; auto t = fs::last_write_time(s, ec);
+        if (!ec && t > newest) newest = t;
+    }
+    return n;
+}
+
+static long CachedInputCount(const std::string& fn)     // -1 if unreadable/unstamped
+{
+    const Int_t pv = gErrorIgnoreLevel; gErrorIgnoreLevel = kFatal;
+    auto* f = TFile::Open(fn.c_str());
+    long v = -1;
+    if (f && !f->IsZombie() && !f->TestBit(TFile::kRecovered)) {
+        if (auto* p = (TParameter<Long64_t>*)f->Get("n_input_files")) v = (long)p->GetVal();
+    }
+    if (f) { f->Close(); delete f; }
+    gErrorIgnoreLevel = pv;
+    return v;
+}
+
 // Produce/refresh the per-cask analysis files and return the grand-sum spectrum
 // (all casks) for one config, as an INDEPENDENT clone.
 TH1* plot_heatmap(fs::path p = "data/roomReturn/hall_3cluster/2cm_Pb",
@@ -40,27 +68,83 @@ TH1* plot_heatmap(fs::path p = "data/roomReturn/hall_3cluster/2cm_Pb",
     TH1* specSum = nullptr;                        // owned by canvas c2 (black)
 
     for (int ic = 0; ic < ncask; ++ic) {
-        // One analyze_cask pass produces BOTH particle files; regenerate only
-        // if a file is missing, then display only typePart.
+        //
+        const std::string caskDir = Form("%s/cask%d", p.string().c_str(), ic);
         const std::string fnameG =
             Form("root_output/analysis_%s_gamma_cask%d.root",   pathTag.c_str(), ic);
         const std::string fnameN =
             Form("root_output/analysis_%s_neutron_cask%d.root", pathTag.c_str(), ic);
-
+        
+        // reject absent / zombie / *recovered* (in-progress) caches
         auto haveFile = [](const std::string& fn) {
             const Int_t pv = gErrorIgnoreLevel; gErrorIgnoreLevel = kFatal;
             auto* t = TFile::Open(fn.c_str());
-            const bool ok = t && !t->IsZombie();
+            const bool ok = t && !t->IsZombie() && !t->TestBit(TFile::kRecovered);
             if (t) { t->Close(); delete t; }
             gErrorIgnoreLevel = pv;
             return ok;
         };
+        
+        fs::file_time_type inNewest;
+        const long nNow = CountInputs(caskDir, inNewest);
+        const long nExp = (long)kNAssem * (long)Sources().size();   // 84 * 5 = 420
+        
+        bool rebuild = false;
         if (!haveFile(fnameG) || !haveFile(fnameN)) {
+            rebuild = true;
+            std::cerr << "[rebuild] cask " << ic << ": cache missing / zombie / recovered\n";
+        } else {
+            const long nCached = CachedInputCount(fnameG);
+            const auto outMt    = fs::last_write_time(fnameG);
+            if (nCached < nNow) {
+                rebuild = true;
+                std::cerr << "[rebuild] cask " << ic << ": inputs grew "
+                          << nCached << " -> " << nNow << " since cache was built\n";
+            } else if (inNewest > outMt) {
+                rebuild = true;
+                std::cerr << "[rebuild] cask " << ic << ": an input file is newer than the cache\n";
+            }
+        }
+        
+        // LOUD completeness report, every run, rebuild or not
+        if (nNow < nExp) {
+            std::cerr << "\033[1;31m[WARN] cask " << ic << ": only " << nNow << "/" << nExp
+                      << " input files present (" << (nExp - nNow)
+                      << " missing) -- results reflect a PARTIAL dataset\033[0m\n";
+        } else {
+            std::cout << "[ok] cask " << ic << ": all " << nExp << " inputs present\n";
+        }
+        
+        if (rebuild) {
             fs::create_directories(fs::path(fnameG).parent_path());
-            analyze_cask(Form("%s/cask%d", p.string().c_str(), ic),
+            analyze_cask(caskDir.c_str(),
                          { {"gamma", fnameG}, {"neutron", fnameN} },
                          typeDet, level, kCaskPos[ic].x, kCaskPos[ic].y, false);
         }
+        //
+
+
+        //// One analyze_cask pass produces BOTH particle files; regenerate only
+        //// if a file is missing, then display only typePart.
+        //const std::string fnameG =
+        //    Form("root_output/analysis_%s_gamma_cask%d.root",   pathTag.c_str(), ic);
+        //const std::string fnameN =
+        //    Form("root_output/analysis_%s_neutron_cask%d.root", pathTag.c_str(), ic);
+
+        //auto haveFile = [](const std::string& fn) {
+        //    const Int_t pv = gErrorIgnoreLevel; gErrorIgnoreLevel = kFatal;
+        //    auto* t = TFile::Open(fn.c_str());
+        //    const bool ok = t && !t->IsZombie();
+        //    if (t) { t->Close(); delete t; }
+        //    gErrorIgnoreLevel = pv;
+        //    return ok;
+        //};
+        //if (!haveFile(fnameG) || !haveFile(fnameN)) {
+        //    fs::create_directories(fs::path(fnameG).parent_path());
+        //    analyze_cask(Form("%s/cask%d", p.string().c_str(), ic),
+        //                 { {"gamma", fnameG}, {"neutron", fnameN} },
+        //                 typeDet, level, kCaskPos[ic].x, kCaskPos[ic].y, false);
+        //}
 
         const std::string fname =
             Form("root_output/analysis_%s_%s_cask%d.root",
