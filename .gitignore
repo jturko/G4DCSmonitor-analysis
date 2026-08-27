@@ -2,3 +2,4 @@ data
 *.root
 logs/*
 macros/*
+analysis/root_output

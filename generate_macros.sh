@@ -111,10 +111,32 @@ for BASE in "${BASE_FUELS[@]}"; do
 /dcs-monitor/det/setBiasingShells   1
 
 
-## --- Nominal 
-/dcs-monitor/det/setPosition 2930.00 1580.00 150 mm
-/dcs-monitor/det/setRotation 0 -90 0
-/dcs-monitor/det/clyc/add
+##  ## --- Nominal 
+##  /dcs-monitor/det/setPosition 2930.00 1580.00 150 mm
+##  /dcs-monitor/det/setRotation 0 -90 0
+##  /dcs-monitor/det/clyc/add
+
+## --- Nominal + HemiShield---
+/dcs-monitor/det/setPosition  3025.000  1580.000  150 mm
+/dcs-monitor/det/setRotation  0  0  -90
+/dcs-monitor/det/clyc/addByCrystalCenter
+/dcs-monitor/det/clyc/setPEPlugLipLength   0 cm
+/dcs-monitor/det/clyc/setPEPlugInnerLength 0 cm
+/dcs-monitor/det/clyc/setPEColLength       0 cm
+/dcs-monitor/det/clyc/setPbColLength       0 cm
+/dcs-monitor/det/setPosition  3025.000  1580.000  150 mm
+/dcs-monitor/det/setRotation  0  0  -90
+/dcs-monitor/det/hemishield/add
+/dcs-monitor/det/hemishield/setBoreOffsetY       5   cm
+/dcs-monitor/det/hemishield/setCavityRadius      8.5 cm
+/dcs-monitor/det/hemishield/setBoronMassFraction 0.05
+/dcs-monitor/det/hemishield/setLinerThickness    0   cm
+/dcs-monitor/det/hemishield/setLinerMaterial     G4_AIR
+/dcs-monitor/det/hemishield/setPEThickness       16.5 cm
+/dcs-monitor/det/hemishield/setGammaMaterial     G4_Pb
+/dcs-monitor/det/hemishield/setGammaThickness    2   cm
+/dcs-monitor/det/hemishield/setGammaCollimatorMaterial  G4_Pb
+/dcs-monitor/det/hemishield/setGammaCollimatorThickness 2 cm
 
 # =====================================================================
 #  THREE CASTOR 440/84 clusters, side-facing 2x2 squares, SYMMETRIC
@@ -197,7 +219,7 @@ EOF
 /dcs-monitor/surf/caskNum           ${CASK}
 /dcs-monitor/surf/sourceRotZ        ${ROT} deg
 /dcs-monitor/surf/decayRate         ${RATE_THIS}
-/analysis/setFileName               data/roomReturn/hall_3cluster/nominal/cask${CASK}/detector-response_globalFuel${GFUEL_PAD}_${SUBDIR}
+/analysis/setFileName               data/hemiOpt1/cask${CASK}/detector-response_globalFuel${GFUEL_PAD}_${SUBDIR}
 /dcs-monitor/surf/startRun          ${MEAS_TIME} s
 EOF
       done
