@@ -128,8 +128,9 @@ struct Config { std::string dir; std::string title; };
 // Add further 12-cask trees here to overlay/compare them.
 inline const std::vector<Config>& Configs() {
     static const std::vector<Config> c = {
-        //{ "nominal",                "nominal" },
-        { "nominal-all-positions",  "nominal (all positions)" },
+        { "nominal",                "nominal" },
+        { "hemiOpt1",               "hemiOpt1" },
+        //{ "nominal-all-positions",  "nominal (all positions)" },
     };
     return c;
 }

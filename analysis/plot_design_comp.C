@@ -255,7 +255,7 @@ TH1* plot_heatmap(fs::path p = "data/roomReturn/hall_3cluster/2cm_Pb",
                   std::string typePart = "gamma",
                   DetectorType typeDet = kCLYC,
                   int level = 2,
-                  bool slimAnalysis = true)
+                  bool slimAnalysis = false)
 {
     std::string pathTag = p.lexically_relative("data").generic_string();
     if (pathTag.empty() || pathTag == ".") pathTag = p.filename().string();
